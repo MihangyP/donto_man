@@ -32,6 +32,9 @@ bool	init_window(t_donto_man *donto_man)
 						W_WIDTH, W_HEIGHT,
 						0,
 						0, 0);
+	donto_man->gc = XCreateGC(donto_man->display, donto_man->window, 0, NULL);
+	donto_man->wm_delete_window = XInternAtom(donto_man->display, "WM_DELETE_WINDOW", False);
+	XSetWMProtocols(donto_man->display, donto_man->window, &donto_man->wm_delete_window, 1);
 	XSelectInput(donto_man->display, donto_man->window, KeyPressMask);
 	XMapWindow(donto_man->display, donto_man->window);
 	XFlush(donto_man->display);
@@ -40,6 +43,8 @@ bool	init_window(t_donto_man *donto_man)
 
 bool	close_window(t_donto_man *donto_man)
 {
+	XFreeGC(donto_man->display, donto_man->gc);
+	XDestroyWindow(donto_man->display, donto_man->window);
 	XCloseDisplay(donto_man->display);
 	return (true);
 }
@@ -56,15 +61,30 @@ int	main(void)
 		return (1);	
 	}
 	while (!window_should_close) {
-		while (XPending(donto_man.display)) {
+		while (XPending(donto_man.display) > 0) {
 			XNextEvent(donto_man.display, &donto_man.event);
-			if (donto_man.event.type == KeyPress) {
-				KeySym keysym = XLookupKeysym(&donto_man.event.xkey, 0);
-				if (keysym == XK_Escape) {
-					window_should_close = true;
-				}
+			switch (donto_man.event.type) {
+				case KeyPress: {
+				   KeySym keysym = XLookupKeysym(&donto_man.event.xkey, 0);
+				   if (keysym == XK_Escape)
+					   window_should_close = true;
+				} break;
+				case ClientMessage: {
+					if ((Atom)donto_man.event.xclient.data.l[0] == donto_man.wm_delete_window)
+						window_should_close = true;
+				} break;
+				default:
+					trace_log(WARNING, "Unknown event type");
 			}
 		}
+		XSetForeground(donto_man.display, donto_man.gc, 0xFF0000);
+		XFillRectangle(
+			donto_man.display,
+			donto_man.window,
+			donto_man.gc,
+			10, 10,
+			50, 50
+		);
 	}
 	close_window(&donto_man);
 	return (0);

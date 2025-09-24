@@ -25,7 +25,9 @@ typedef struct s_donto_man
 	Display	*display;
 	Window	window;
 	XEvent	event;
+	GC		gc;
 	int		screen;
+	Atom	wm_delete_window;
 }	t_donto_man;
 
 #endif // DONTO_MAN_H
