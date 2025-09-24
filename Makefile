@@ -2,7 +2,7 @@ NAME = donto_man
 SRCS = main.c
 SRC_FILES = $(addprefix src/, $(SRCS))
 OBJ_FILES = $(SRC_FILES:.c=.o)
-HEADERS = donto_man.h
+HEADERS = donto_man.h miniaudio.h stb_image.h
 HEADER_FILES = $(addprefix include/, $(HEADERS))
 GDB ?=
 CC = cc

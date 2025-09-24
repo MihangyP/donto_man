@@ -38,6 +38,9 @@ bool	init_window(t_donto_man *donto_man)
 	XSelectInput(donto_man->display, donto_man->window, KeyPressMask);
 	XMapWindow(donto_man->display, donto_man->window);
 	XFlush(donto_man->display);
+
+	donto_man->music.result = ma_engine_init(NULL, &donto_man->music.engine);
+	if (donto_man->music.result != MA_SUCCESS) return (false);
 	return (true);
 }
 
@@ -46,40 +49,60 @@ bool	close_window(t_donto_man *donto_man)
 	XFreeGC(donto_man->display, donto_man->gc);
 	XDestroyWindow(donto_man->display, donto_man->window);
 	XCloseDisplay(donto_man->display);
+	ma_engine_uninit(&donto_man->music.engine);
 	return (true);
 }
 
-void	draw_scene(t_donto_man *donto_man)
-{
-	XSetForeground(donto_man->display, donto_man->gc, 0xFF0000);
-	XFillRectangle(
-			donto_man->display,
-			donto_man->window,
-			donto_man->gc,
-			10, 10,
-			50, 50);
+void	clear_background(t_donto_man *donto_man, int color) {
+	XSetForeground(donto_man->display, donto_man->gc, color);
+	for (size_t y = 0; y < W_HEIGHT; ++y) {
+		for (size_t x = 0; x < W_WIDTH; ++x)
+			XDrawPoint(donto_man->display, donto_man->window, donto_man->gc, x, y);
+	}
 }
 
+void	draw_scene(t_donto_man *donto_man, t_img *img)
+{
+	clear_background(donto_man, BACKGROUND_COLOR);
+	XPutImage(donto_man->display, donto_man->window, donto_man->gc, img->ximg, 0, 0, 0, 0, img->width, img->height);
+}
+
+// TODO: remove leaks when playing music
 int	main(void)
 {
-	ma_result result;
-	ma_engine engine;
-
 	t_donto_man	donto_man;
+	t_img		player;
 	bool		status;
 	bool		window_should_close = false;
+	unsigned char *img_data;
 
 	status = init_window(&donto_man);
 	if (!status) {
 		trace_log(ERROR, "Cannot init window");
 		exit(EXIT_FAILURE);
 	}
-	result = ma_engine_init(NULL, &engine);
-	if (result != MA_SUCCESS) {
-		trace_log(ERROR, "Failed to initialize audio engine.");
+	// Play sound
+	ma_engine_play_sound(&donto_man.music.engine, "./resources/hurry.wav", NULL);
+	// Load img
+	int	width, height;
+	player.img_data = stbi_load("./resources/donto_man.png", &width, &height, NULL, 4);
+	if (!player.img_data) {
+		trace_log(ERROR, "Failed to load image");
 		exit(EXIT_FAILURE);
 	}
-	ma_engine_play_sound(&engine, "./resources/hurry.wav", NULL);
+	player.ximg = XCreateImage(
+				donto_man.display,
+				DefaultVisual(donto_man.display, donto_man.screen),
+				24,
+				ZPixmap,
+				0,
+				(char *)player.img_data,
+				width, height,
+				32, 0);
+	if (!player.ximg) {
+		trace_log(ERROR, "Failed to create XImage");
+		exit(EXIT_FAILURE);
+	}
 	while (!window_should_close) {
 		while (XPending(donto_man.display) > 0) {
 			XNextEvent(donto_man.display, &donto_man.event);
@@ -97,32 +120,9 @@ int	main(void)
 					trace_log(WARNING, "Unknown event type");
 			}
 		}
-		draw_scene(&donto_man);
+		draw_scene(&donto_man, &player);
 	}
-	ma_engine_uninit(&engine);
+	stbi_image_free(player.img_data);
 	close_window(&donto_man);
 	return (0);
 }
-
-#if 0
-int main(int ac, char **av)
-{
-	ma_result result;
-	ma_engine engine;
-
-	result = ma_engine_init(NULL, &engine);
-	if (result != MA_SUCCESS) {
-		printf("Failed to initialize audio engine.");
-		return -1;
-	}
-
-	ma_engine_play_sound(&engine, av[1], NULL);
-
-	printf("Press Enter to quit...");
-	getchar();
-
-	ma_engine_uninit(&engine);
-
-	return 0;
-}
-#endif
