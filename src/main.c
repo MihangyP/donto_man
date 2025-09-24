@@ -49,8 +49,22 @@ bool	close_window(t_donto_man *donto_man)
 	return (true);
 }
 
+void	draw_scene(t_donto_man *donto_man)
+{
+	XSetForeground(donto_man->display, donto_man->gc, 0xFF0000);
+	XFillRectangle(
+			donto_man->display,
+			donto_man->window,
+			donto_man->gc,
+			10, 10,
+			50, 50);
+}
+
 int	main(void)
 {
+	ma_result result;
+	ma_engine engine;
+
 	t_donto_man	donto_man;
 	bool		status;
 	bool		window_should_close = false;
@@ -58,8 +72,14 @@ int	main(void)
 	status = init_window(&donto_man);
 	if (!status) {
 		trace_log(ERROR, "Cannot init window");
-		return (1);	
+		exit(EXIT_FAILURE);
 	}
+	result = ma_engine_init(NULL, &engine);
+	if (result != MA_SUCCESS) {
+		trace_log(ERROR, "Failed to initialize audio engine.");
+		exit(EXIT_FAILURE);
+	}
+	ma_engine_play_sound(&engine, "./resources/hurry.wav", NULL);
 	while (!window_should_close) {
 		while (XPending(donto_man.display) > 0) {
 			XNextEvent(donto_man.display, &donto_man.event);
@@ -77,15 +97,32 @@ int	main(void)
 					trace_log(WARNING, "Unknown event type");
 			}
 		}
-		XSetForeground(donto_man.display, donto_man.gc, 0xFF0000);
-		XFillRectangle(
-			donto_man.display,
-			donto_man.window,
-			donto_man.gc,
-			10, 10,
-			50, 50
-		);
+		draw_scene(&donto_man);
 	}
+	ma_engine_uninit(&engine);
 	close_window(&donto_man);
 	return (0);
 }
+
+#if 0
+int main(int ac, char **av)
+{
+	ma_result result;
+	ma_engine engine;
+
+	result = ma_engine_init(NULL, &engine);
+	if (result != MA_SUCCESS) {
+		printf("Failed to initialize audio engine.");
+		return -1;
+	}
+
+	ma_engine_play_sound(&engine, av[1], NULL);
+
+	printf("Press Enter to quit...");
+	getchar();
+
+	ma_engine_uninit(&engine);
+
+	return 0;
+}
+#endif

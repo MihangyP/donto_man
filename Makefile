@@ -9,7 +9,7 @@ CC = cc
 CFLAGS = $(GDB) -Wall -Wextra #-Werror
 RM = rm -rf
 INCLUDING = -I./include
-LINKING = -lX11 
+LINKING = -lX11 -lm -lpthread 
 
 all: $(NAME)
 

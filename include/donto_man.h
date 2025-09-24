@@ -7,6 +7,7 @@
 #include <assert.h>
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
+#define MINIAUDIO_IMPLEMENTATION
 #include "miniaudio.h"
 
 #define W_WIDTH 800
